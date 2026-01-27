@@ -26,9 +26,10 @@ const voteSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Create unique index on reviewCycleId and deviceHash
+// Create unique index on reviewCycleId, deviceHash and targetEmployeeId
+// This allows the same device to submit one vote per employee per review cycle
 voteSchema.index(
-  { reviewCycleId: 1, deviceHash: 1 },
+  { reviewCycleId: 1, deviceHash: 1, targetEmployeeId: 1 },
   { unique: true }
 );
 
