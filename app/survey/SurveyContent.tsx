@@ -6,8 +6,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import SurveyForm from './SurveyForm';
 import { getDeviceFingerprint } from '@/lib/deviceFingerprint';
+import apiFetch from '@/lib/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://survey.codewithseth.co.ke/api'
+    : 'http://localhost:5090/api');
 
 interface ReviewCycle {
   _id: string;
@@ -44,10 +49,9 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
         // Fetch review cycle (public endpoint)
         let reviewCycle = null;
         try {
-          const cycleRes = await fetch(`${API_BASE_URL}/public/review-cycles/${cycleId}`);
+          const cycleRes = await apiFetch(`/public/review-cycles/${cycleId}`);
           if (cycleRes.status === 404) {
-            // Try fetching all public cycles and pick the matching id or the first active one
-            const listRes = await fetch(`${API_BASE_URL}/public/review-cycles`);
+            const listRes = await apiFetch('/public/review-cycles');
             const listData = await listRes.json();
             if (listData.success && Array.isArray(listData.data)) {
               reviewCycle = listData.data.find((c: any) => c._id === cycleId) || listData.data[0] || null;
@@ -76,9 +80,7 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
         setCycle(reviewCycle);
 
         // Check if device has already voted
-        const hasVotedRes = await fetch(
-          `${API_BASE_URL}/votes/check/${cycleId}/${encodeURIComponent(fingerprint)}`
-        );
+        const hasVotedRes = await apiFetch(`/votes/check/${cycleId}/${encodeURIComponent(fingerprint)}`);
         const hasVotedData = await hasVotedRes.json();
         if (hasVotedData.success) {
           setHasVoted(hasVotedData.hasVoted);

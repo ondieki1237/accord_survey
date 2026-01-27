@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import apiFetch from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://survey.codewithseth.co.ke/api'
+    : 'http://localhost:5090/api');
 
 interface DashboardStats {
   cyclesCount: number;
@@ -28,8 +33,8 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
         const [cyclesRes, employeesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/review-cycles`),
-          fetch(`${API_BASE_URL}/employees`),
+          apiFetch('/review-cycles'),
+          apiFetch('/employees'),
         ]);
 
         const cyclesData = await cyclesRes.json();

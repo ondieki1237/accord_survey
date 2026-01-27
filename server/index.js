@@ -14,7 +14,8 @@ const app = express();
 const PORT = process.env.PORT || 5090;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/accord-survey';
 // Allow all origins by default for public access; can be overridden by CORS_ORIGIN env var
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const DEFAULT_CORS = process.env.NODE_ENV === 'production' ? 'https://survey.codewithseth.co.ke' : '*';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || DEFAULT_CORS;
 
 // Middleware
 app.use(express.json());

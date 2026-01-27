@@ -1,4 +1,6 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+import apiFetch, { PRIMARY_BASE, PRIMARY_HOST, SECONDARY_HOST } from './api';
+
+export const API_BASE_URL = PRIMARY_BASE;
 
 export const setToken = (token: string) => {
     if (typeof window !== 'undefined') {
@@ -39,14 +41,39 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
-    const res = await fetch(url, {
-        ...options,
-        headers,
-    });
+    const opts = { ...options, headers };
 
-    if (res.status === 401) {
-        logout();
+    // If the caller passed a full URL that contains legacy localhost:5000, rewrite to primary host
+    if (typeof url === 'string' && url.startsWith('http') && url.includes('localhost:5000')) {
+        url = url.replace(/https?:\/\/localhost:5000/, PRIMARY_HOST);
     }
 
-    return res;
+    try {
+        // If a relative path or primary base, use apiFetch to get fallback behavior
+        if (!url.startsWith('http') || url.startsWith(PRIMARY_BASE) || url.startsWith(PRIMARY_HOST)) {
+            // Convert relative paths to be apiFetch-friendly
+            const path = url.startsWith('http') ? url.replace(PRIMARY_BASE, '') : url;
+            const res = await apiFetch(path, opts);
+            if (res.status === 401) logout();
+            return res;
+        }
+
+        // Otherwise perform a direct fetch but fall back to secondary on network error
+        try {
+            const res = await fetch(url, opts);
+            if (res.status === 401) logout();
+            if (!res.ok && res.status >= 500) {
+                // try secondary host
+                const fallbackUrl = url.replace(PRIMARY_HOST, SECONDARY_HOST);
+                return fetch(fallbackUrl, opts);
+            }
+            return res;
+        } catch (err) {
+            // try fallback host
+            const fallbackUrl = url.replace(PRIMARY_HOST, SECONDARY_HOST);
+            return fetch(fallbackUrl, opts);
+        }
+    } catch (err) {
+        throw err;
+    }
 };

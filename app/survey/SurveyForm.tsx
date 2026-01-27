@@ -6,8 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import apiFetch from '@/lib/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://survey.codewithseth.co.ke/api'
+    : 'http://localhost:5090/api');
 
 interface Employee {
   _id: string;
@@ -157,9 +162,6 @@ export default function SurveyForm({
       }
     } catch (err) {
       setError('Error submitting feedback. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 

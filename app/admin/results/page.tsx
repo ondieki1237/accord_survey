@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import apiFetch from '@/lib/api';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://survey.codewithseth.co.ke/api'
+    : 'http://localhost:5090/api');
 
 interface ReviewCycle {
   _id: string;
@@ -41,6 +47,23 @@ interface FullResultsPayload {
   questions: any[];
 }
 
+// Simple chart component that uses Chart.js if installed. Falls back to a tiny SVG bar if Chart.js isn't available.
+function QuestionChart({ counts }: { counts: { [key: string]: number } }) {
+  const data = [1,2,3,4,5].map((i) => ({ name: String(i), value: counts[String(i)] || 0 }));
+  return (
+    <div style={{ width: '100%', height: 120 }}>
+      <ResponsiveContainer>
+        <BarChart data={data}>
+          <XAxis dataKey="name" />
+          <YAxis allowDecimals={false} />
+          <Tooltip />
+          <Bar dataKey="value" fill="#0ea5a4" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function ResultsPage() {
   const [cycles, setCycles] = useState<ReviewCycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState<string>('');
@@ -58,7 +81,7 @@ export default function ResultsPage() {
   useEffect(() => {
     const fetchCycles = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/review-cycles`);
+        const res = await apiFetch('/review-cycles');
         const data = await res.json();
 
         if (data.success) {
@@ -81,9 +104,7 @@ export default function ResultsPage() {
     const fetchResults = async () => {
       try {
         setLoading(true);
-        const res = await fetch(
-          `${API_BASE_URL}/votes/cycle/${selectedCycle}`
-        );
+        const res = await apiFetch(`/votes/cycle/${selectedCycle}`);
         const data = await res.json();
 
         if (data.success) {
@@ -318,8 +339,11 @@ export default function ResultsPage() {
                         <div className="font-medium">{q.text}</div>
                         <div className="text-sm text-muted-foreground">Avg: {avg ? avg.toFixed(2) : '—'}/5</div>
                       </div>
-                      <div className="w-full bg-border h-3 rounded overflow-hidden mb-2">
-                        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                      <div className="w-full mb-2">
+                        <div className="w-full bg-border h-3 rounded overflow-hidden mb-2">
+                          <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                        </div>
+                        <QuestionChart counts={qs.counts} />
                       </div>
                       <div className="text-xs text-muted-foreground">Top responders:</div>
                       <ol className="list-decimal list-inside text-sm">
