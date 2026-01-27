@@ -116,7 +116,17 @@ router.get('/cycle/:reviewCycleId', async (req, res, next) => {
     };
 
     votes.forEach((vote) => {
-      const empId = vote.targetEmployeeId._id.toString();
+      // Defensive: targetEmployeeId may be null if employee was deleted or not populated
+      const te = vote.targetEmployeeId;
+      let empId;
+      if (te && (te._id || te.toString)) {
+        empId = te._id ? te._id.toString() : String(te);
+      } else {
+        // skip votes without a valid targetEmployeeId to avoid throwing
+        console.warn('Skipping vote with missing targetEmployeeId', vote._id);
+        return;
+      }
+
       if (!stats.byEmployee[empId]) {
         stats.byEmployee[empId] = {
           employee: vote.targetEmployeeId,
