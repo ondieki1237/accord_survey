@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -34,6 +34,7 @@ interface SurveyFormProps {
   questions: Question[];
   deviceId: string;
   onSubmit: () => void;
+  onCurrentEmployeeChange?: (emp: Employee) => void;
 }
 
 // 1-10 Scale
@@ -48,8 +49,15 @@ export default function SurveyForm({
   questions,
   deviceId,
   onSubmit,
+  onCurrentEmployeeChange,
 }: SurveyFormProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (onCurrentEmployeeChange && employees && employees.length > 0) {
+      onCurrentEmployeeChange(employees[currentIndex]);
+    }
+  }, [currentIndex, employees, onCurrentEmployeeChange]);
 
   // Defensive: if no employees provided, render a friendly message
   if (!employees || employees.length === 0) {

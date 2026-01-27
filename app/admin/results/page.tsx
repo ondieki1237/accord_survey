@@ -536,7 +536,7 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {/* Full Survey Modal */}
+          {/* Full Survey Modal (grouped by reviewer/deviceHash) */}
           {fullModalOpen && results && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
               <div className="bg-white dark:bg-card p-6 rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto">
@@ -549,32 +549,68 @@ export default function ResultsPage() {
                   {results.votes.length === 0 ? (
                     <div className="text-sm text-muted-foreground">No submissions yet.</div>
                   ) : (
-                    results.votes.map((v: any, idx: number) => {
-                      const emp = results.stats.byEmployee[v.targetEmployeeId]? results.stats.byEmployee[v.targetEmployeeId].employee : null;
-                      const empName = emp ? emp.name : (v.targetEmployeeId && (v.targetEmployeeId.name || v.targetEmployeeId)) || 'Unknown';
-                      return (
-                        <div key={idx} className="border p-3 rounded">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium">Target: {empName}</div>
-                              <div className="text-sm text-muted-foreground">Submitted: {new Date(v.createdAt).toLocaleString()}</div>
-                            </div>
-                          </div>
+                    (() => {
+                      // Group votes by deviceHash so we can see when one reviewer submitted multiple targets
+                      const groups: Record<string, any[]> = {};
+                      results.votes.forEach((v: any) => {
+                        const key = v.deviceHash || 'unknown';
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(v);
+                      });
 
-                          <div className="mt-3 space-y-2">
-                            {v.answers.map((a: any, i: number) => {
-                              const q = results.questions.find((qq: any) => String(qq._id) === String(a.questionId));
-                              return (
-                                <div key={i}>
-                                  <div className="text-sm font-medium">{q ? q.text : `Question ${i+1}`}</div>
-                                  <div className="text-sm">{String(a.answer)}</div>
+                      const groupKeys = Object.keys(groups);
+
+                      return (
+                        <div className="space-y-4">
+                          <div className="text-sm text-muted-foreground">{groupKeys.length} reviewer submissions • {results.votes.length} individual reviews</div>
+                          {groupKeys.map((ghash) => {
+                            const items = groups[ghash];
+                            // Use first item's createdAt as submission time
+                            const first = items[0];
+                            return (
+                              <div key={ghash} className="border p-3 rounded">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div>
+                                    <div className="font-medium">Reviewer: {ghash === 'unknown' ? 'unknown' : `${ghash.slice(0,6)}…${ghash.slice(-4)}`}</div>
+                                    <div className="text-sm text-muted-foreground">Submitted: {new Date(first.createdAt).toLocaleString()}</div>
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">Targets: {items.length}</div>
                                 </div>
-                              );
-                            })}
-                          </div>
+
+                                <div className="space-y-3">
+                                  {items.map((v: any, idx: number) => {
+                                    const emp = results.stats.byEmployee[v.targetEmployeeId]? results.stats.byEmployee[v.targetEmployeeId].employee : null;
+                                    const empName = emp ? emp.name : (v.targetEmployeeId && (v.targetEmployeeId.name || v.targetEmployeeId)) || 'Unknown';
+                                    return (
+                                      <div key={idx} className="p-2 bg-muted/5 rounded">
+                                        <div className="flex items-start justify-between mb-2">
+                                          <div>
+                                            <div className="font-medium">Target: {empName}</div>
+                                            <div className="text-sm text-muted-foreground">Submitted: {new Date(v.createdAt).toLocaleString()}</div>
+                                          </div>
+                                        </div>
+
+                                        <div className="mt-1 space-y-2">
+                                          {v.answers.map((a: any, i: number) => {
+                                            const q = results.questions.find((qq: any) => String(qq._id) === String(a.questionId));
+                                            return (
+                                              <div key={i}>
+                                                <div className="text-sm font-medium">{q ? q.text : `Question ${i+1}`}</div>
+                                                <div className="text-sm">{String(a.answer)}</div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
-                    })
+                    })()
                   )}
                 </div>
               </div>

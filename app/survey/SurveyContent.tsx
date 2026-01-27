@@ -37,6 +37,7 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
   const [deviceId, setDeviceId] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
   const [closed, setClosed] = useState(false);
+  const [currentTarget, setCurrentTarget] = useState<{ name: string; role?: string } | null>(null);
 
   useEffect(() => {
     const initializeSurvey = async () => {
@@ -195,12 +196,12 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Sticky Prominent Header */}
+        {/* Sticky Prominent Header - shows current employee being reviewed */}
         <div className="sticky top-0 z-50 bg-gradient-to-b from-background/90 to-transparent py-4">
           <div className="flex items-center justify-center flex-col">
             <div className="text-center">
-              <h2 className="text-xl font-semibold">Seth Makori</h2>
-              <div className="text-sm text-muted-foreground">QA Engineer</div>
+              <h2 className="text-xl font-semibold">{currentTarget ? currentTarget.name : cycle.name}</h2>
+              <div className="text-sm text-muted-foreground">{currentTarget ? currentTarget.role || '' : cycle.description}</div>
             </div>
           </div>
         </div>
@@ -241,6 +242,7 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
               questions={cycle.questions}
               deviceId={deviceId}
               onSubmit={() => setSubmitted(true)}
+              onCurrentEmployeeChange={(emp) => setCurrentTarget({ name: emp.name, role: emp.role })}
             />
           </CardContent>
         </Card>
