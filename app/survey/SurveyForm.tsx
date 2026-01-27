@@ -138,7 +138,7 @@ export default function SurveyForm({
           answer: val
         }));
 
-        return fetch(`${API_BASE_URL}/votes`, {
+        return apiFetch('/votes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

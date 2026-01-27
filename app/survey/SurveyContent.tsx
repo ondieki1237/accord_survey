@@ -36,6 +36,7 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
   const [error, setError] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
+  const [closed, setClosed] = useState(false);
 
   useEffect(() => {
     const initializeSurvey = async () => {
@@ -98,6 +99,7 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
     initializeSurvey();
   }, [cycleId]);
 
+  // Render states in order: loading, error, closed, no cycle, already voted, submitted, form
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
@@ -118,11 +120,26 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
               <CardTitle className="text-red-600">Error</CardTitle>
             </CardHeader>
             <CardContent>
-              <Alert className="border-red-500 bg-red-50 text-red-900">
+              <Alert className="border-red-500 bg-red-50 text-red-900 mb-4">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
+              <div className="flex gap-2">
+                <Button onClick={() => setClosed(true)} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">Close</Button>
+                <Button variant="outline" onClick={() => setClosed(true)} className="flex-1">Dismiss</Button>
+              </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (closed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold">Thank you</h3>
+          <p className="text-sm text-muted-foreground mt-2">You can safely close this page.</p>
         </div>
       </div>
     );
@@ -138,32 +155,6 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
     );
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-green-500">
-          <CardHeader>
-            <CardTitle className="text-green-600">Thank You!</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-foreground">
-              Your feedback has been submitted successfully and securely recorded.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              This device cannot submit another vote for this review cycle. Thank you for your honest feedback!
-            </p>
-            <Button
-              onClick={() => window.location.href = '/'}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Return Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (hasVoted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
@@ -172,18 +163,29 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
             <CardTitle className="text-accent">Already Submitted</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-foreground">
-              You have already submitted your feedback for this review cycle.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              To maintain anonymity and fairness, each device can only submit one response per review cycle.
-            </p>
-            <Button
-              onClick={() => window.location.href = '/'}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Return Home
-            </Button>
+            <p className="text-foreground">You have already submitted your feedback for this review cycle.</p>
+            <p className="text-sm text-muted-foreground">To maintain anonymity and fairness, each device can only submit one response per review cycle.</p>
+            <Button onClick={() => setClosed(true)} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Close</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-green-500">
+          <CardHeader>
+            <CardTitle className="text-green-600">Thank You!</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-foreground">Your feedback has been submitted successfully and securely recorded.</p>
+            <p className="text-sm text-muted-foreground">This device cannot submit another vote for this review cycle. Thank you for your honest feedback!</p>
+            <div className="flex gap-2">
+              <Button onClick={() => setClosed(true)} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">Close</Button>
+              <Button variant="outline" onClick={() => setClosed(true)} className="flex-1">Dismiss</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -193,6 +195,15 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* Sticky Prominent Header */}
+        <div className="sticky top-0 z-50 bg-gradient-to-b from-background/90 to-transparent py-4">
+          <div className="flex items-center justify-center flex-col">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold">Seth Makori</h2>
+              <div className="text-sm text-muted-foreground">QA Engineer</div>
+            </div>
+          </div>
+        </div>
         {/* Header */}
         <div className="text-center mb-8">
           <img
