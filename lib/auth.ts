@@ -1,4 +1,4 @@
-import apiFetch, { PRIMARY_BASE, PRIMARY_HOST, SECONDARY_HOST } from './api';
+import apiFetch, { PRIMARY_BASE, PRIMARY_HOST } from './api';
 
 export const API_BASE_URL = PRIMARY_BASE;
 
@@ -58,21 +58,10 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
             return res;
         }
 
-        // Otherwise perform a direct fetch but fall back to secondary on network error
-        try {
-            const res = await fetch(url, opts);
-            if (res.status === 401) logout();
-            if (!res.ok && res.status >= 500) {
-                // try secondary host
-                const fallbackUrl = url.replace(PRIMARY_HOST, SECONDARY_HOST);
-                return fetch(fallbackUrl, opts);
-            }
-            return res;
-        } catch (err) {
-            // try fallback host
-            const fallbackUrl = url.replace(PRIMARY_HOST, SECONDARY_HOST);
-            return fetch(fallbackUrl, opts);
-        }
+        // Otherwise perform a direct fetch against the provided URL
+        const res = await fetch(url, opts);
+        if (res.status === 401) logout();
+        return res;
     } catch (err) {
         throw err;
     }
