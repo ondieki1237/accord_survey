@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -53,11 +53,28 @@ export default function SurveyForm({
 }: SurveyFormProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const _cbRef = useRef(onCurrentEmployeeChange);
+  const _lastSent = useRef<string | null>(null);
+
+  // keep latest callback in a ref so effect below doesn't depend on it
   useEffect(() => {
-    if (onCurrentEmployeeChange && employees && employees.length > 0) {
-      onCurrentEmployeeChange(employees[currentIndex]);
+    _cbRef.current = onCurrentEmployeeChange;
+  }, [onCurrentEmployeeChange]);
+
+  useEffect(() => {
+    if (!_cbRef.current || !employees || employees.length === 0) return;
+    const emp = employees[currentIndex];
+    const empId = emp?._id ? String(emp._id) : String(currentIndex);
+    if (_lastSent.current !== empId) {
+      _lastSent.current = empId;
+      try {
+        _cbRef.current(emp);
+      } catch (e) {
+        // ignore errors from parent
+      }
     }
-  }, [currentIndex, employees, onCurrentEmployeeChange]);
+    // intentionally NOT including onCurrentEmployeeChange in deps to avoid unstable callback causing loops
+  }, [currentIndex, employees]);
 
   // Defensive: if no employees provided, render a friendly message
   if (!employees || employees.length === 0) {
