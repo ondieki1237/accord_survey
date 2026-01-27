@@ -11,14 +11,20 @@ import publicReviewCycleRoutes from './routes/publicReviewCycles.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5090;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/accord-survey';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+// Allow all origins by default for public access; can be overridden by CORS_ORIGIN env var
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: CORS_ORIGIN }));
+// If CORS_ORIGIN is '*', allow all origins; otherwise restrict to configured origin
+app.use(
+  cors({
+    origin: CORS_ORIGIN === '*' ? true : CORS_ORIGIN,
+  })
+);
 
 // Database connection
 mongoose
