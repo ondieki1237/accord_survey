@@ -220,6 +220,23 @@ export default function ResultsPage() {
     return (s[(v-20)%10] || s[v] || s[0]);
   };
 
+  // Questions that are qualitative/open-text and should not show charts
+  const qualitativeQuestionKeywords = [
+    "what are this employee's key strengths",
+    'what are this employees key strengths',
+    'what are this employee’s key strengths',
+    'what is one area he/she can improve',
+    'what should this employee start, stop, or continue',
+    'how does this employee impact team collaboration',
+    'is there any support or training you recommend'
+  ];
+
+  const isQualitativeQuestion = (text?: string) => {
+    if (!text) return false;
+    const t = text.toLowerCase().replace(/["'’—–-]/g, '').trim();
+    return qualitativeQuestionKeywords.some((k) => t.includes(k));
+  };
+
   return (
     <DashboardLayout>
       <div className="p-8 max-w-7xl mx-auto">
@@ -368,9 +385,18 @@ export default function ResultsPage() {
                   const top = ranking.length > 0 ? results.stats.byEmployee[ranking[0].empId]?.employee : null;
                   // choose card size: first item large, every 5th medium, others small
                   const size = idx === 0 ? 'lg' : (idx % 5 === 0 ? 'md' : 'sm');
+                  const qual = isQualitativeQuestion(q.text);
+                  if (qual) {
+                    return (
+                      <div key={qid} className="glass-card rounded-20 p-4 shadow-md border-border">
+                        <div className="font-medium text-foreground mb-2">{q.text}</div>
+                        <div className="text-sm text-muted-foreground">Open text responses only — no chart for this question.</div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div key={qid} className={""}>
-                      {/* Use MetricCard to render the question */}
                       {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
                       {/* @ts-ignore */}
                       <MetricCard title={q.text} average={avg} question={q.shortText || ''} topResponder={top ? { name: top.name } : null} size={size as any} spark={[Math.max(1,avg-0.5), avg-0.2, avg, avg+0.1, Math.max(1,avg+0.2)]} />
@@ -425,7 +451,7 @@ export default function ResultsPage() {
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Per-question performance & ranking</h4>
                     <div className="space-y-3">
-                      {results.questions.map((q: any, qi: number) => {
+                        {results.questions.map((q: any, qi: number) => {
                         const qid = String(q._id);
                         const empAvg = (employeeQuestionAverages[detailModal.empId] || {})[qid] || 0;
                         const rankingArr = questionRankings[qid] || [];
@@ -433,9 +459,9 @@ export default function ResultsPage() {
                         const rank = rankObj ? rankObj.rank : null;
                         const totalParticipants = rankingArr.length || 0;
                         const overallAvg = questionStats[qid] ? questionStats[qid].average : 0;
-                        const pct = Math.min(100, Math.round((empAvg / 5) * 100));
+                        const qual = isQualitativeQuestion(q.text);
                         return (
-                          <div key={qi} className="border p-3 rounded">
+                          <div key={qi} className="p-3 rounded">
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <div className="font-medium">{q.text}</div>
@@ -445,10 +471,16 @@ export default function ResultsPage() {
                                 {rank ? `${rank}${ordinal(rank)} of ${totalParticipants}` : 'No rank'}
                               </div>
                             </div>
-                            <div className="w-full bg-border h-3 rounded overflow-hidden">
-                              <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">Overall avg: {overallAvg ? overallAvg.toFixed(2) : '—'}/5</div>
+                            {qual ? (
+                              <div className="text-sm text-muted-foreground">Open text responses — no chart displayed for this question.</div>
+                            ) : (
+                              <>
+                                <div className="w-full bg-border h-3 rounded overflow-hidden">
+                                  <div className="h-full bg-primary" style={{ width: `${Math.min(100, Math.round((empAvg/5)*100))}%` }} />
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">Overall avg: {overallAvg ? overallAvg.toFixed(2) : '—'}/5</div>
+                              </>
+                            )}
                           </div>
                         );
                       })}
