@@ -123,3 +123,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Dashboard glassmorphism utilities and typography */
+.glass-card {
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* Neutral page background for analytics */
+.analytics-bg {
+  background-color: #F8FAFC;
+}
+
+/* Rounded 20px utility (used for Premium look) */
+.rounded-20 {
+  border-radius: 20px;
+}
+
+/* Small avatar */
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  object-fit: cover;
+}

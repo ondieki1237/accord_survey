@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import apiFetch from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import MetricCard from '@/components/dashboard/MetricCard';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import CompareView from '@/components/dashboard/CompareView';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +80,8 @@ export default function ResultsPage() {
   const [employeeQuestionAverages, setEmployeeQuestionAverages] = useState<any>({});
   const [questionRankings, setQuestionRankings] = useState<any>({});
   const [fullModalOpen, setFullModalOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareSelected, setCompareSelected] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchCycles = async () => {
@@ -216,7 +221,8 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <DashboardLayout>
+      <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">Results</h1>
@@ -254,33 +260,47 @@ export default function ResultsPage() {
         </div>
       ) : results ? (
         <>
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                  <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Votes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">
-                  {results.stats.totalVotes}
+          {/* Key Performance Overview (new premium layout) */}
+          <div className="mb-6">
+            {/* Compute best and worst question summaries inline */}
+            {/* best = highest average, worst = lowest average */}
+            {(() => {
+              const qs = results.questions || [];
+              const stats = questionStats || {};
+              let best = { label: '—', value: 0 };
+              let worst = { label: '—', value: 5 };
+              qs.forEach((q: any) => {
+                const s = stats[String(q._id)];
+                const avg = s ? s.average || 0 : 0;
+                if (avg > best.value) best = { label: q.text, value: avg };
+                if (avg < worst.value) worst = { label: q.text, value: avg };
+              });
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="lg:col-span-4">
+                    <div className="glass-card rounded-20 p-4 shadow-lg border-border flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Key Performance Overview</div>
+                        <div className="mt-1 text-2xl font-bold text-foreground">Overall insights</div>
+                        <div className="text-sm text-muted-foreground">Total votes: {results.stats.totalVotes} • Average: {parseFloat(String(results.stats.averageScore)).toFixed(2)}/5</div>
+                      </div>
+                      <div className="flex gap-6 items-center">
+                        <div className="flex flex-col items-center">
+                          <div className="text-xs text-muted-foreground">Highest</div>
+                          <div className="mt-2"><svg width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="44" r="40" stroke="#e6eef6" strokeWidth="8" fill="none"/><text x="44" y="50" textAnchor="middle" fontSize="14" fontWeight={700} fill="#0f172a">{best.value? best.value.toFixed(2): '—'}</text></svg></div>
+                          <div className="text-sm mt-2 max-w-xs text-foreground/80">{best.label}</div>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="text-xs text-muted-foreground">Lowest</div>
+                          <div className="mt-2"><svg width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="44" r="40" stroke="#e6eef6" strokeWidth="8" fill="none"/><text x="44" y="50" textAnchor="middle" fontSize="14" fontWeight={700} fill="#0f172a">{worst.value? worst.value.toFixed(2): '—'}</text></svg></div>
+                          <div className="text-sm mt-2 max-w-xs text-foreground/80">{worst.label}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Average Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">
-                  {parseFloat(String(results.stats.averageScore)).toFixed(2)}/5
-                </div>
-              </CardContent>
-            </Card>
+              );
+            })()}
           </div>
 
           {/* Employee selector filter */}
@@ -305,6 +325,19 @@ export default function ResultsPage() {
                   <span className="text-sm">{emp.name}</span>
                 </label>
               ))}
+              <div className="ml-2 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    // toggle compare selection to match current selectedEmployees by default
+                    setCompareSelected(selectedEmployees.slice(0, 3));
+                    setCompareOpen(true);
+                  }}
+                  disabled={selectedEmployees.length < 2}
+                  className={`text-sm px-3 py-1 rounded ${selectedEmployees.length < 2 ? 'opacity-50 cursor-not-allowed' : 'bg-primary text-primary-foreground'}`}
+                >
+                  Compare Selected
+                </button>
+              </div>
             </div>
           </div>
 
@@ -325,33 +358,22 @@ export default function ResultsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Per-question infographics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {results.questions.map((q: any) => {
+              {/* Per-question infographics (premium cards) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {results.questions.map((q: any, idx: number) => {
                   const qid = String(q._id);
                   const qs = questionStats[qid] || { counts: {}, total: 0, average: 0 };
                   const ranking = (questionRankings[qid] || []).slice(0,3);
                   const avg = qs.average || 0;
-                  const pct = Math.min(100, Math.round((avg / 5) * 100));
+                  const top = ranking.length > 0 ? results.stats.byEmployee[ranking[0].empId]?.employee : null;
+                  // choose card size: first item large, every 5th medium, others small
+                  const size = idx === 0 ? 'lg' : (idx % 5 === 0 ? 'md' : 'sm');
                   return (
-                    <div key={qid} className="border p-3 rounded">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-medium">{q.text}</div>
-                        <div className="text-sm text-muted-foreground">Avg: {avg ? avg.toFixed(2) : '—'}/5</div>
-                      </div>
-                      <div className="w-full mb-2">
-                        <div className="w-full bg-border h-3 rounded overflow-hidden mb-2">
-                          <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-                        </div>
-                        <QuestionChart counts={qs.counts} />
-                      </div>
-                      <div className="text-xs text-muted-foreground">Top responders:</div>
-                      <ol className="list-decimal list-inside text-sm">
-                        {ranking.length === 0 ? <li className="text-sm text-muted-foreground">No data</li> : ranking.map((r: any) => {
-                          const emp = results.stats.byEmployee[r.empId]?.employee;
-                          return <li key={r.empId}>{emp ? emp.name : r.empId} — {r.avg ? r.avg.toFixed(2) : '—'}</li>;
-                        })}
-                      </ol>
+                    <div key={qid} className={""}>
+                      {/* Use MetricCard to render the question */}
+                      {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                      {/* @ts-ignore */}
+                      <MetricCard title={q.text} average={avg} question={q.shortText || ''} topResponder={top ? { name: top.name } : null} size={size as any} spark={[Math.max(1,avg-0.5), avg-0.2, avg, avg+0.1, Math.max(1,avg+0.2)]} />
                     </div>
                   );
                 })}
@@ -437,6 +459,51 @@ export default function ResultsPage() {
             </div>
           )}
 
+          {/* Compare Modal */}
+          {compareOpen && results && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-card p-6 rounded-lg max-w-5xl w-full max-h-[85vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Compare Employees</h3>
+                  <button onClick={() => setCompareOpen(false)} className="text-sm text-muted-foreground">Close</button>
+                </div>
+
+                <div className="mb-4">
+                  <div className="text-sm text-muted-foreground mb-2">Choose up to 3 employees to compare</div>
+                  <div className="flex flex-wrap gap-2">
+                    {employeesList.map((emp) => (
+                      <label key={emp._id} className={`inline-flex items-center gap-2 px-3 py-1 border rounded cursor-pointer ${compareSelected.includes(emp._id) ? 'bg-primary/10' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={compareSelected.includes(emp._id)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setCompareSelected((prev) => {
+                              const s = new Set(prev);
+                              if (checked) s.add(emp._id);
+                              else s.delete(emp._id);
+                              const arr = Array.from(s);
+                              return arr.slice(0, 3);
+                            });
+                          }}
+                        />
+                        <span className="text-sm">{emp.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  {compareSelected.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No employees selected.</div>
+                  ) : (
+                    <CompareView employees={results.stats.byEmployee} empIds={compareSelected} stats={questionStats} empQAvg={employeeQuestionAverages} questions={results.questions} />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Full Survey Modal */}
           {fullModalOpen && results && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -487,6 +554,7 @@ export default function ResultsPage() {
           Select a review cycle to view results
         </div>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
