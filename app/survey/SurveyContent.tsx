@@ -42,15 +42,28 @@ export default function SurveyContent({ cycleId }: SurveyContentProps) {
         setDeviceId(fingerprint);
 
         // Fetch review cycle (public endpoint)
-        const cycleRes = await fetch(`${API_BASE_URL}/public/review-cycles/${cycleId}`);
-        const cycleData = await cycleRes.json();
+        let reviewCycle = null;
+        try {
+          const cycleRes = await fetch(`${API_BASE_URL}/public/review-cycles/${cycleId}`);
+          if (cycleRes.status === 404) {
+            // Try fetching all public cycles and pick the matching id or the first active one
+            const listRes = await fetch(`${API_BASE_URL}/public/review-cycles`);
+            const listData = await listRes.json();
+            if (listData.success && Array.isArray(listData.data)) {
+              reviewCycle = listData.data.find((c: any) => c._id === cycleId) || listData.data[0] || null;
+            }
+          } else {
+            const cycleData = await cycleRes.json();
+            if (cycleData.success) reviewCycle = cycleData.data;
+          }
+        } catch (err) {
+          console.error('Error fetching review cycle:', err);
+        }
 
-        if (!cycleData.success) {
+        if (!reviewCycle) {
           setError('Survey not found');
           return;
         }
-
-        const reviewCycle = cycleData.data;
 
         // Check if cycle is active
         const now = new Date();

@@ -3,9 +3,10 @@
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { authFetch, API_BASE_URL } from '@/lib/auth';
 
 interface ReviewCycle {
   _id: string;
@@ -25,6 +26,7 @@ interface ReviewCycleTableProps {
   loading: boolean;
   onEdit: (cycle: ReviewCycle) => void;
   onDelete: (id: string) => void;
+  onRefresh?: () => void;
 }
 
 export default function ReviewCycleTable({
@@ -32,14 +34,34 @@ export default function ReviewCycleTable({
   loading,
   onEdit,
   onDelete,
+  onRefresh,
 }: ReviewCycleTableProps) {
   const [shareDialog, setShareDialog] = useState<string | null>(null);
   const [questionsDialog, setQuestionsDialog] = useState<null | { id: string; questions: any[] }>(null);
+  const [assignDialog, setAssignDialog] = useState<null | { id: string; selected: string[] }>(null);
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   const getSurveyUrl = (cycleId: string): string => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     return `${baseUrl}/survey?cycleId=${cycleId}`;
   };
+
+  // Load employees when opening assign dialog
+  useEffect(() => {
+    const loadEmployees = async () => {
+      if (!assignDialog) return;
+      try {
+        const res = await authFetch(`${API_BASE_URL}/employees`);
+        const data = await res.json();
+        if (data.success) setAllEmployees(data.data);
+      } catch (err) {
+        console.error('Failed to load employees', err);
+      }
+    };
+
+    loadEmployees();
+  }, [assignDialog]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -112,6 +134,14 @@ export default function ReviewCycleTable({
                       className="text-xs bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       Share
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAssignDialog({ id: cycle._id, selected: (cycle.employees || []).map((e: any) => (e._id ? e._id : e)) })}
+                      className="text-xs"
+                    >
+                      Assign
                     </Button>
                     <Button
                       size="sm"
@@ -211,6 +241,92 @@ export default function ReviewCycleTable({
                   ))}
                 </ol>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Employees Dialog */}
+      <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Employees</DialogTitle>
+            <DialogDescription>Choose employees to include in this review cycle</DialogDescription>
+          </DialogHeader>
+
+          {assignDialog && (
+            <div className="space-y-4">
+              <div className="max-h-60 overflow-y-auto pr-2">
+                {allEmployees.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Loading employees...</div>
+                ) : (
+                  allEmployees.map((emp) => (
+                    <label key={emp._id} className="flex items-center gap-2 p-2 border-b last:border-0">
+                      <input
+                        type="checkbox"
+                        checked={assignDialog.selected.includes(emp._id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setAssignDialog((prev) => {
+                            if (!prev) return prev;
+                            const sel = new Set(prev.selected);
+                            if (checked) sel.add(emp._id);
+                            else sel.delete(emp._id);
+                            return { ...prev, selected: Array.from(sel) };
+                          });
+                        }}
+                      />
+                      <div>
+                        <div className="font-medium">{emp.name}</div>
+                        <div className="text-sm text-muted-foreground">{emp.role}</div>
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" onClick={() => setAssignDialog(null)} className="flex-1">Cancel</Button>
+                <Button
+                  onClick={async () => {
+                    if (!assignDialog) return;
+                    try {
+                      setAssignLoading(true);
+                      const res = await authFetch(`${API_BASE_URL}/review-cycles/${assignDialog.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ employees: assignDialog.selected }),
+                      });
+
+                      if (res.ok) {
+                        setAssignDialog(null);
+                        if (typeof window !== 'undefined') {
+                          // optional: refresh parent list
+                          if (typeof (window as any).location !== 'undefined') {
+                            // no-op
+                          }
+                        }
+                        if (typeof (props as any) !== 'undefined') {
+                          // eslint-disable-next-line
+                        }
+                        // Call optional refresh callback
+                        onRefresh && onRefresh();
+                      } else {
+                        const d = await res.json();
+                        alert(d.message || 'Failed to assign employees');
+                      }
+                    } catch (err) {
+                      console.error(err);
+                      alert('Error assigning employees');
+                    } finally {
+                      setAssignLoading(false);
+                    }
+                  }}
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={assignLoading}
+                >
+                  {assignLoading ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

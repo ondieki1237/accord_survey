@@ -46,6 +46,20 @@ export default function SurveyForm({
 }: SurveyFormProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Defensive: if no employees provided, render a friendly message
+  if (!employees || employees.length === 0) {
+    return (
+      <div className="min-h-[200px]">
+        <div className="text-center py-8">
+          <h3 className="text-lg font-semibold">No employees to review</h3>
+          <p className="text-sm text-muted-foreground mt-2">
+            There are no employees assigned to this review cycle. If you are an admin, please add employees to the cycle.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // State structure: { [employeeId]: { [questionId]: answer } }
   const [responses, setResponses] = useState<{
     [employeeId: string]: { [questionId: string]: string | number }

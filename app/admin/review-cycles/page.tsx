@@ -129,6 +129,7 @@ export default function ReviewCyclesPage() {
             loading={loading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onRefresh={fetchCycles}
           />
         </CardContent>
       </Card>
