@@ -47,7 +47,6 @@ export default function ReviewCycleModal({
     startDate: '',
     endDate: '',
   });
-  const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,14 +58,8 @@ export default function ReviewCycleModal({
         startDate: new Date(cycle.startDate).toISOString().split('T')[0],
         endDate: new Date(cycle.endDate).toISOString().split('T')[0],
       });
-      setQuestions(cycle.questions || []);
     } else {
-      // Default questions for new cycle
-      setQuestions([
-        { text: "Completes tasks on time and meets quality standards", type: 'rating', required: true, order: 1 },
-        { text: "Demonstrates integrity and honesty", type: 'rating', required: true, order: 2 },
-        { text: "What are this employee's key strengths?", type: 'text', required: true, order: 3 },
-      ]);
+      // New cycle defaults
     }
   }, [cycle]);
 
@@ -80,23 +73,7 @@ export default function ReviewCycleModal({
     }));
   };
 
-  const handleQuestionChange = (index: number, field: keyof Question, value: any) => {
-    const newQuestions = [...questions];
-    newQuestions[index] = { ...newQuestions[index], [field]: value };
-    setQuestions(newQuestions);
-  };
 
-  const addQuestion = () => {
-    setQuestions([
-      ...questions,
-      { text: '', type: 'rating', required: true, order: questions.length + 1 },
-    ]);
-  };
-
-  const removeQuestion = (index: number) => {
-    const newQuestions = questions.filter((_, i) => i !== index);
-    setQuestions(newQuestions.map((q, i) => ({ ...q, order: i + 1 })));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,11 +89,6 @@ export default function ReviewCycleModal({
       return;
     }
 
-    if (questions.some(q => !q.text.trim())) {
-      setError('All questions must have text');
-      return;
-    }
-
     try {
       setLoading(true);
       const url = cycle
@@ -127,8 +99,7 @@ export default function ReviewCycleModal({
       const res = await authFetch(url, {
         method,
         body: JSON.stringify({
-          ...formData,
-          questions
+          ...formData
         }),
       });
 
@@ -218,64 +189,14 @@ export default function ReviewCycleModal({
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-center border-b pb-2">
-                <h3 className="font-semibold text-lg">Questions ({questions.length})</h3>
-                <Button type="button" size="sm" onClick={addQuestion} variant="outline" className="h-8">
-                  <Plus className="w-4 h-4 mr-1" /> Add
-                </Button>
-              </div>
-
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {questions.map((q, idx) => (
-                  <div key={idx} className="flex gap-2 items-start bg-muted/30 p-3 rounded-md border border-border">
-                    <div className="mt-2 text-muted-foreground cursor-move">
-                      <GripVertical className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <Input
-                        value={q.text}
-                        onChange={(e) => handleQuestionChange(idx, 'text', e.target.value)}
-                        placeholder="Question text..."
-                        className="h-9"
-                      />
-                      <div className="flex gap-2">
-                        <Select
-                          value={q.type}
-                          onValueChange={(val) => handleQuestionChange(idx, 'type', val)}
-                        >
-                          <SelectTrigger className="h-8 w-[130px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="rating">Rating (1-5)</SelectItem>
-                            <SelectItem value="text">Text Answer</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <div className="flex items-center gap-2 ml-auto">
-                          <Label className="text-xs">Required</Label>
-                          <input
-                            type="checkbox"
-                            checked={q.required}
-                            onChange={(e) => handleQuestionChange(idx, 'required', e.target.checked)}
-                            className="rounded border-gray-300"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8"
-                      onClick={() => removeQuestion(idx)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+            <div className="bg-muted/30 p-4 rounded-lg border border-border">
+              <h3 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                <span className="bg-primary/10 text-primary rounded-full p-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg></span>
+                Standardized Questions
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                This review cycle will automatically use the standardized set of performance questions defined by your organization policy. No manual configuration is required.
+              </p>
             </div>
           </div>
 

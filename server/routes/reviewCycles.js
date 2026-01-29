@@ -3,6 +3,7 @@ import ReviewCycle from '../models/ReviewCycle.js';
 import Employee from '../models/Employee.js';
 import Vote from '../models/Vote.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { STANDARD_QUESTIONS } from '../config/questions.js';
 
 const router = express.Router();
 
@@ -58,7 +59,9 @@ router.post('/', protect, async (req, res, next) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       employees: employees || [],
-      questions: questions || [],
+      employees: employees || [],
+      // enforce standard questions
+      questions: STANDARD_QUESTIONS,
     });
 
     const saved = await cycle.save();
@@ -88,7 +91,9 @@ router.put('/:id', protect, async (req, res, next) => {
         endDate: endDate ? new Date(endDate) : undefined,
         isActive,
         employees,
-        questions,
+        employees,
+        // enforce standard questions
+        questions: STANDARD_QUESTIONS,
       },
       { new: true, runValidators: true }
     ).populate('employees');
